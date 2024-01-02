@@ -15,7 +15,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-namespace MessagingApp
+namespace Client
 {
     /// <summary>
     /// Varsayılan Uygulama sınıfını tamamlayacak uygulamaya özgü davranış sağlar.

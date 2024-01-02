@@ -8,6 +8,7 @@ namespace SharedProject
     {
         initialize,
         newMemberSigned,
+        memberLeft,
         audio,
         text,
         image,

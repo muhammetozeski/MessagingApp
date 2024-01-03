@@ -2,6 +2,8 @@
 using System.Net.Sockets;
 using SharedProject;
 using System.Net;
+using System.Collections.Generic;
+using System.Windows;
 
 namespace Server
 {
@@ -153,6 +155,10 @@ namespace Server
                                 Console.WriteLine("Message receiver guid: " + message.ReceiverGuid);
                                 SendOne(message);
                             }
+                            //sender:
+                            OnClientGotMessage(client, message);
+                            //receiver:
+                            OnClientGotMessage(clients[message.ReceiverGuid], message);
                             continue;
                         case MessageTypes.initialize:
                             client.IP = message.SenderIP;
@@ -161,10 +167,18 @@ namespace Server
                             //sign a guid to the client:
                             Message SendGuidMessage = new Message();
                             SendGuidMessage.MessageType = MessageTypes.initialize;
-                            SendGuidMessage.SenderGuid = Guid.Empty; //server is empty guid
+                            SendGuidMessage.SenderType = UserType.server;
                             SendGuidMessage.ReceiverGuid = client.Guid; //client will sign this guid to himself
                             SendGuidMessage.SenderName = serverSenderName;
-                            SendOne(message);
+                            SendGuidMessage.OnlineList = new Dictionary<Guid, (string, string)>();
+                            foreach (var clientToBeSent in clients)
+                            {
+                                if (clientToBeSent.Value == client)
+                                    continue;
+                                SendGuidMessage.OnlineList.Add(clientToBeSent.Key, (clientToBeSent.Value.Name, clientToBeSent.Value.IP));
+                            }
+
+                            SendOne(SendGuidMessage);
                             continue;
                         case MessageTypes.newMemberSigned:
                             Console.WriteLine("Client initialized:");
@@ -184,8 +198,6 @@ namespace Server
                             Console.WriteLine("unexpected message type");
                             break;
                     }
-                    //so this is not a text messagge. then send this message everyone except the sender
-                    BroadCast(header, buffer, client);
                 }
                 catch (IOException)
                 {
@@ -203,36 +215,11 @@ namespace Server
 
         static void BroadCast(byte[] header, byte[] data, Client exception = default)
         {
-            foreach (var client in clients)
+            foreach (var client in clients.Values)
             {
                 if (client.Equals(exception))
                     continue;
-                Console.WriteLine("message sending to " + client.Name + " " + client.Guid);
-                //var stream = client.Connection.GetStream();
-                client.Connection.Send(header);
-
-                // Veriyi 1024'er parçalara böl ve gönder
-                int offset = 0;
-                int chunkSize = 1024;
-
-                while (offset < data.Length)
-                {
-                    int remainingBytes = data.Length - offset;
-                    int sendSize = Math.Min(chunkSize, remainingBytes);
-
-                    // Socket.Send metodu ile parçayı gönder
-                    int sentBytes = client.Connection.Send(data, offset, sendSize, SocketFlags.Partial);
-
-                    // Gönderilen byte sayısını kontrol et
-                    if (sentBytes <= 0)
-                    {
-                        Console.WriteLine("Veri gönderilemedi.");
-                        break;
-                    }
-
-                    offset += sentBytes;
-                }
-                Console.WriteLine("message sent to " + client.Name + " " + client.Guid);
+                SendOne(header, data, client);
             }
         }
         static void BroadCast(Message message, Client exception = null)
@@ -247,24 +234,84 @@ namespace Server
         /// </summary>
         static void SendOne(Message message)
         {
+            Exception e = RawMessage.MessageToByte(message, out byte[] header, out byte[] data);
+            if (e != null)
+            {
+                //there is an error
+                Console.WriteLine(e.Message);
+                return;
+            }
+            SendOne(header, data, clients[message.ReceiverGuid]);
+        }
 
+        static void SendOne(byte[] header, byte[] data, Client receiver)
+        {
+            try
+            {
+                Console.WriteLine("message sending to " + receiver.Name + " " + receiver.Guid);
+                //var stream = client.Connection.GetStream();
+                receiver.Connection.Send(header);
+
+                // Veriyi 1024'er parçalara böl ve gönder
+                int offset = 0;
+                int chunkSize = 1024;
+
+                while (offset < data.Length)
+                {
+                    int remainingBytes = data.Length - offset;
+                    int sendSize = Math.Min(chunkSize, remainingBytes);
+
+                    // Socket.Send metodu ile parçayı gönder
+                    int sentBytes = receiver.Connection.Send(data, offset, sendSize, SocketFlags.Partial);
+
+                    // Gönderilen byte sayısını kontrol et
+                    if (sentBytes <= 0)
+                    {
+                        Console.WriteLine("Veri gönderilemedi.");
+                        break;
+                    }
+
+                    offset += sentBytes;
+                }
+                Console.WriteLine("message sent to " + receiver.Name + " " + receiver.Guid);
+            }
+            catch (Exception) { }
+            
         }
 
         static void onBytesReceivedZeroLength(Client client)
         {
             Console.WriteLine(client.Name + " " + client.Guid + " disconnected with 0 byte read");
             //Console.WriteLine(client.IP + " is disconnected ip.");
-            Console.Beep(300, 100);
-            Console.Beep(300, 100);
-            clients.Remove(client);
+            OnClientLeft(client);
         }
         static void onClientDisconnectedWithException(Client client)
         {
             Console.WriteLine(client.Name + " " + client.Guid + " disconnected with an exception");
             //Console.WriteLine(client.IP + " is disconnected ip.");
+            OnClientLeft(client);
+        }
+        static void OnClientLeft(Client client)
+        {
             Console.Beep(300, 100);
             Console.Beep(300, 100);
-            clients.Remove(client);
+            announceClientLeft(client);
+            client.ChangeOnlineStatus(false);
+            //clients.Remove(client.Guid);
+        }
+
+        static void OnClientGotMessage(Client client, Message message)
+        {
+            client.AddNewMessage(message.SenderGuid, message);
+        }
+        static void announceClientLeft(Client client)
+        {
+            Message m = new();
+            m.MessageType = MessageTypes.memberLeft;
+            m.SenderGuid = client.Guid;
+            m.SenderIP = client.IP;
+            m.SenderName = client.Name;
+            BroadCast(m, client);
         }
     }
 }

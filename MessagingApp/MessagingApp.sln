@@ -7,7 +7,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharedProject", "..\SharedP
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Server", "..\Server\Server.csproj", "{3D4FFD67-A566-45A6-8732-CB8CDDEE5A00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "..\Client\Client.csproj", "{976C3D47-79AC-4C0C-A88B-CFF1212EC5DB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "..\Client\Client.csproj", "{976C3D47-79AC-4C0C-A88B-CFF1212EC5DB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{36105095-F8AC-4895-9935-F614515C4130}"
+	ProjectSection(SolutionItems) = preProject
+		..\Assets\Background\bg.png = ..\Assets\Background\bg.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

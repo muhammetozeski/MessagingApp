@@ -29,7 +29,7 @@
             <TextBlock Text="Server port:"/>
             <TextBox x:Name="PortTextBox" Width="200" Margin="0,0,0,20" KeyDown="Port_TextBox_KeyDown"/>
             <TextBlock Text="User name:"/>
-            <TextBox x:Name="UserNameTextBox" Width="200" Margin="0,0,0,20" KeyDown="Port_TextBox_KeyDown"/>
+            <TextBox x:Name="UserNameTextBox" Width="200" Margin="0,0,0,20" KeyDown="UserName_TextBox_KeyDown"/>
             <Button x:Name="EnterButton" Content="Enter" Click="Enter_Button_Click"/>
             <TextBlock x:Name="WarningText" Margin="0,20,0,0" Foreground="Red" Visibility="Collapsed" />
             <TextBlock x:Name="InfoText" Margin="0,20,0,0" Foreground="#FF297900" Visibility="Collapsed" />

@@ -21,6 +21,8 @@ namespace ClientSpace
     /// </summary>
     public partial class WellcomeWindow : Window
     {
+        MainWindow mainWindow = new MainWindow();
+        static bool switched = false;
         public WellcomeWindow()
         {
             InitializeComponent();
@@ -30,21 +32,44 @@ namespace ClientSpace
         private void WellcomeWindow_Loaded(object sender, RoutedEventArgs e)
         {
             //test purpose:
-            w(IdentifierHelpers.CreateOneCharacterGuid('f'));
+            //w(IdentifierHelpers.CreateOneCharacterGuid('6'));
             IpTextBox.Focus();
             IpTextBox.SelectAll();
+
+            mainWindow.Show();
+            mainWindow.Visibility = Visibility.Hidden;
+
+            Closed += (_, _) =>
+            {
+                if(!switched)
+                    Environment.Exit(Environment.ExitCode);
+            };
         }
 
         private void IP_TextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            PortTextBox.Focus();
-            PortTextBox.SelectAll();
+            if(e.Key == Key.Enter)
+            {
+                PortTextBox.Focus();
+                PortTextBox.SelectAll();
+            }
         }
 
         private void Port_TextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if(e.Key == Key.Enter)
+            if (e.Key == Key.Enter)
+            {
+                UserNameTextBox.Focus();
+                UserNameTextBox.SelectAll();
+            }
+        }
+
+        private void UserName_TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
                 enter();
+            }
         }
 
         private void Enter_Button_Click(object sender, RoutedEventArgs e)
@@ -65,30 +90,20 @@ namespace ClientSpace
                     return;
                 }
 
-                if(!ClientManager.Instance.TryConnecting(IpTextBox.Text, port))
+                if (!ClientManager.Instance.TryConnecting(IpTextBox.Text, port, UserNameTextBox.Text))
                 {
                     WarningText.Visibility = Visibility.Visible;
                     WarningText.Text = "Error on connecting to the server. Please try again.";
                     EnterButton.IsEnabled = true;
                     return;
                 }
-                ClientManager.Instance.UserName = UserNameTextBox.Text;
                 WarningText.Visibility = Visibility.Collapsed;
                 InfoText.Visibility = Visibility.Visible;
-                InfoText.Text = "Connected to the server. Getting ip info.";
-                string? ip = ClientManager.Instance.GetIpInfo();
-                if(ip == null)
-                {
-                    InfoText.Text = "An error occured while getting ip information";
-                }
-                else
-                {
-                    InfoText.Text = "Your ip is " + ip;
-                }
-                MainWindow mainWindow = new MainWindow();
-                mainWindow.Show();
-                Visibility = Visibility.Hidden;
-                EnterButton.IsEnabled = true;
+                InfoText.Text = "Connected to the server";
+
+                mainWindow.Visibility = Visibility.Visible;
+                switched = true;
+                Close();
             }
         }
     }

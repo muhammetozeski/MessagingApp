@@ -21,6 +21,8 @@ namespace ClientSpace
     /// </summary>
     public partial class WellcomeWindow : Window
     {
+        MainWindow mainWindow = new MainWindow();
+        static bool switched = false;
         public WellcomeWindow()
         {
             InitializeComponent();
@@ -33,6 +35,15 @@ namespace ClientSpace
             //w(IdentifierHelpers.CreateOneCharacterGuid('6'));
             IpTextBox.Focus();
             IpTextBox.SelectAll();
+
+            mainWindow.Show();
+            mainWindow.Visibility = Visibility.Hidden;
+
+            Closed += (_, _) =>
+            {
+                if(!switched)
+                    Environment.Exit(Environment.ExitCode);
+            };
         }
 
         private void IP_TextBox_KeyDown(object sender, KeyEventArgs e)
@@ -79,7 +90,7 @@ namespace ClientSpace
                     return;
                 }
 
-                if(!ClientManager.Instance.TryConnecting(IpTextBox.Text, port, UserNameTextBox.Text))
+                if (!ClientManager.Instance.TryConnecting(IpTextBox.Text, port, UserNameTextBox.Text))
                 {
                     WarningText.Visibility = Visibility.Visible;
                     WarningText.Text = "Error on connecting to the server. Please try again.";
@@ -90,10 +101,9 @@ namespace ClientSpace
                 InfoText.Visibility = Visibility.Visible;
                 InfoText.Text = "Connected to the server";
 
-                MainWindow mainWindow = new MainWindow();
-                mainWindow.Show();
-                Visibility = Visibility.Hidden;
-                EnterButton.IsEnabled = true;
+                mainWindow.Visibility = Visibility.Visible;
+                switched = true;
+                Close();
             }
         }
     }

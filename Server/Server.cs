@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using SharedProject;
 using System.Net;
 using System.Collections.Generic;
+using System.Windows;
 
 namespace Server
 {
@@ -166,9 +167,17 @@ namespace Server
                             //sign a guid to the client:
                             Message SendGuidMessage = new Message();
                             SendGuidMessage.MessageType = MessageTypes.initialize;
-                            SendGuidMessage.SenderGuid = Guid.Empty; //server is empty guid
+                            SendGuidMessage.SenderType = UserType.server;
                             SendGuidMessage.ReceiverGuid = client.Guid; //client will sign this guid to himself
                             SendGuidMessage.SenderName = serverSenderName;
+                            SendGuidMessage.OnlineList = new Dictionary<Guid, (string, string)>();
+                            foreach (var clientToBeSent in clients)
+                            {
+                                if (clientToBeSent.Value == client)
+                                    continue;
+                                SendGuidMessage.OnlineList.Add(clientToBeSent.Key, (clientToBeSent.Value.Name, clientToBeSent.Value.IP));
+                            }
+
                             SendOne(SendGuidMessage);
                             continue;
                         case MessageTypes.newMemberSigned:
@@ -237,34 +246,37 @@ namespace Server
 
         static void SendOne(byte[] header, byte[] data, Client receiver)
         {
-
-            Console.WriteLine("message sending to " + receiver.Name + " " + receiver.Guid);
-            //var stream = client.Connection.GetStream();
-            receiver.Connection.Send(header);
-
-            // Veriyi 1024'er parçalara böl ve gönder
-            int offset = 0;
-            int chunkSize = 1024;
-
-            while (offset < data.Length)
+            try
             {
-                int remainingBytes = data.Length - offset;
-                int sendSize = Math.Min(chunkSize, remainingBytes);
+                Console.WriteLine("message sending to " + receiver.Name + " " + receiver.Guid);
+                //var stream = client.Connection.GetStream();
+                receiver.Connection.Send(header);
 
-                // Socket.Send metodu ile parçayı gönder
-                int sentBytes = receiver.Connection.Send(data, offset, sendSize, SocketFlags.Partial);
+                // Veriyi 1024'er parçalara böl ve gönder
+                int offset = 0;
+                int chunkSize = 1024;
 
-                // Gönderilen byte sayısını kontrol et
-                if (sentBytes <= 0)
+                while (offset < data.Length)
                 {
-                    Console.WriteLine("Veri gönderilemedi.");
-                    break;
+                    int remainingBytes = data.Length - offset;
+                    int sendSize = Math.Min(chunkSize, remainingBytes);
+
+                    // Socket.Send metodu ile parçayı gönder
+                    int sentBytes = receiver.Connection.Send(data, offset, sendSize, SocketFlags.Partial);
+
+                    // Gönderilen byte sayısını kontrol et
+                    if (sentBytes <= 0)
+                    {
+                        Console.WriteLine("Veri gönderilemedi.");
+                        break;
+                    }
+
+                    offset += sentBytes;
                 }
-
-                offset += sentBytes;
+                Console.WriteLine("message sent to " + receiver.Name + " " + receiver.Guid);
             }
-            Console.WriteLine("message sent to " + receiver.Name + " " + receiver.Guid);
-
+            catch (Exception) { }
+            
         }
 
         static void onBytesReceivedZeroLength(Client client)
@@ -284,7 +296,7 @@ namespace Server
             Console.Beep(300, 100);
             Console.Beep(300, 100);
             announceClientLeft(client);
-            client.IsOnline = false;
+            client.ChangeOnlineStatus(false);
             //clients.Remove(client.Guid);
         }
 
@@ -296,10 +308,10 @@ namespace Server
         {
             Message m = new();
             m.MessageType = MessageTypes.memberLeft;
-            m.ReceiverGuid = client.Guid;
-            m.ReceiverIP = client.IP;
-            m.ReceiverName = client.Name;
-            BroadCast(m);
+            m.SenderGuid = client.Guid;
+            m.SenderIP = client.IP;
+            m.SenderName = client.Name;
+            BroadCast(m, client);
         }
     }
 }

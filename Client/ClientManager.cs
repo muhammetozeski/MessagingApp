@@ -33,6 +33,9 @@ namespace ClientSpace
         public string UserIP = "0";
         public Guid ClientGuid;
 
+        /// <summary>
+        /// guid is for the clients guid who is talking with us
+        /// </summary>
         public Dictionary<Guid, List<Message>> Messages = new Dictionary<Guid, List<Message>>();
         public Dictionary<Guid, Client> Clients = new Dictionary<Guid, Client>();
 
@@ -53,11 +56,11 @@ namespace ClientSpace
             OnMessageReceived.Remove(action);
         }
 
-        public void AddToOnMessageReceived(Action<Client> action)
+        public void AddToOnNewMemberSignedUp(Action<Client> action)
         {
             OnNewMemberSignedUp.Add(action);
         }
-        public void RemoveFromOnMessageReceived(Action<Client> action)
+        public void RemoveFromOnNewMemberSignedUp(Action<Client> action)
         {
             OnNewMemberSignedUp.Remove(action);
         }
@@ -73,7 +76,7 @@ namespace ClientSpace
 
         public bool TryConnecting(string serverAddress, int port, string userName)
         {
-            this.UserName = UserName;
+            this.UserName = userName;
             try
             {
                 server.Connect(serverAddress, port);
@@ -99,7 +102,39 @@ namespace ClientSpace
                 return null;
             }
         }
+        public bool AddNewClient(Client client)
+        {
+            if (!Clients.TryAdd(client.Guid, client))
+            {
+                p("client duplicate signing\nClient guid: " + client.Guid + "\nclient name: " + client.Name);
+                return false;
+            }
+            foreach (var action in OnNewMemberSignedUp)
+            {
+                //send the function to the thread that works on wpf ui
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    action(client);
+                });
+            }
+            return true;
+        }
 
+        public void AddNewMessage(Guid opponent, Message message)
+        {
+
+            if (Messages.TryGetValue(opponent, out var list))
+            {
+                list.Add(message);
+            }
+            else
+            {
+                if (!Messages.TryAdd(opponent, new List<Message>() { message }))
+                {
+                    Messages[opponent] = new List<Message>() { message };
+                }
+            }
+        }
         public bool SendMessage(Message message)
         {
             #region Default settings for every message
@@ -163,6 +198,8 @@ namespace ClientSpace
 
                     offset += sentBytes;
                 }
+                if (message.MessageType == MessageTypes.text)
+                    AddNewMessage(message.ReceiverGuid, message);
                 return true;
             }
             catch (Exception e)
@@ -201,6 +238,7 @@ namespace ClientSpace
                 {
                     w("server disconnected");
                     ReconnectToServer();
+                    break;
                 }
                 //stream = server.GetStream();
 
@@ -212,6 +250,7 @@ namespace ClientSpace
                     {
                         w("server disconnected with 0 byte read");
                         ReconnectToServer();
+                        break;
                     }
 
                     bool isLittleEndian = BitConverter.ToBoolean(header, 0);
@@ -237,7 +276,8 @@ namespace ClientSpace
                         if (currentBytesRead == 0)
                         {
                             w("server disconnected with 0 byte read");
-                            ReconnectToServer();
+                            //ReconnectToServer();
+                            break;
                         }
                         IeBytes = IeBytes.Concat(temp);
                         bytesRead += currentBytesRead;
@@ -285,6 +325,28 @@ namespace ClientSpace
 
                         case MessageTypes.initialize:
                             ClientGuid = message.ReceiverGuid;
+
+                            foreach (var item in message.OnlineList)
+                            {
+                                Client OnlineClient = new();
+                                OnlineClient.IP = item.Value.Item2;
+                                OnlineClient.Name = item.Value.Item1;
+                                OnlineClient.Guid = item.Key;
+                                if (!Clients.TryAdd(OnlineClient.Guid, OnlineClient))
+                                {
+                                    p("client duplicate signing\nClient guid: " + OnlineClient.Guid + "\nclient name: " + OnlineClient.Name);
+                                    continue;
+                                }
+                                foreach (var action in OnNewMemberSignedUp)
+                                {
+                                    //send the function to the thread that works on wpf ui
+                                    Application.Current.Dispatcher.Invoke(() =>
+                                    {
+                                        action(OnlineClient);
+                                    });
+                                }
+                            }
+
                             Message NewMemberSignedUpMessage = new Message();
                             NewMemberSignedUpMessage.MessageType = MessageTypes.newMemberSigned;
                             SendMessage(NewMemberSignedUpMessage);
@@ -294,70 +356,65 @@ namespace ClientSpace
                             client.IP = message.SenderIP;
                             client.Name = message.SenderName;
                             client.Guid = message.SenderGuid;
-                            if(!Clients.TryAdd(client.Guid, client))
-                            {
-                                p("client duplicate signing\nClient guid: " + client.Guid + "\nclient name: " + client.Name);
-                                continue;
-                            }
-                            foreach (var action in OnNewMemberSignedUp)
-                            {
-                                action(client);
-                            }
+                            AddNewClient(client);
                             continue;
                         case MessageTypes.memberLeft:
-                            
+                            Client clientWhoLeft = Clients[message.SenderGuid];
+                            clientWhoLeft.ChangeOnlineStatus(false);
+                            foreach (var action in OnMemberLeft)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    action(clientWhoLeft);
+                                });
+                            }
                             continue;
                     }
                     foreach (var action in OnMessageReceived)
                     {
-                        action(message);
-                    }
-                    if (Messages.TryGetValue(message.SenderGuid, out var list))
-                    {
-                        list.Add(message);
-                    }
-                    else
-                    {
-                        if(!Messages.TryAdd(message.SenderGuid, new List<Message>() { message }))
+                        Application.Current.Dispatcher.Invoke(() =>
                         {
-                            Messages[message.SenderGuid] = new List<Message>() { message };
-                        }
+                            action(message);
+                        });
                     }
+                    AddNewMessage(message.SenderGuid, message);
                 }
                 catch (IOException)
                 {
                     w("server disconnected with an exception");
-                    ReconnectToServer();
+                    //ReconnectToServer();
+                    break;
                 }
                 catch (SocketException)
                 {
                     w("server disconnected with an exception");
-                    ReconnectToServer();
+                    //ReconnectToServer();
+                    break;
                 }
             }
         }
         void ReconnectToServer()
         {
-            server.Dispose();
-            server = new TcpClient();
-            bool isConnected = false;
-            while (!isConnected)
-            {
-                w("Trying to reconnect to the server...");
-                try
-                {
-                    server.Connect(serverAddress, port);
-                    w("Server connection successfull");
-                    isConnected = true;
-                }
-                catch (Exception e)
-                {
-                    w("Couldn't connect to server. Error message: \"" + e.Message + "\"");
-                    w("Waiting for 1 second to reconnect");
-                    isConnected = false;
-                    Thread.Sleep(1000);
-                }
-            }
+            //server.Dispose();
+            //server = new TcpClient();
+            //bool isConnected = false;
+            //while (!isConnected)
+            //{
+            //    w("Trying to reconnect to the server...");
+            //    try
+            //    {
+            //        server.Connect(serverAddress, port);
+            //        w("Server connection successfull");
+            //        isConnected = true;
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        w("Couldn't connect to server. Error message: \"" + e.Message + "\"");
+            //        w("Waiting for 1 second to reconnect");
+            //        isConnected = false;
+            //        Thread.Sleep(1000);
+            //    }
+            //}
         }
 
         [Obsolete]

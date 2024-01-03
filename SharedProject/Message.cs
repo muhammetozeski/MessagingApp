@@ -29,5 +29,9 @@ namespace SharedProject
         public byte[] Image { get; set; }
         public byte[] File { get; set; }
 
+        /// <summary>
+        /// online members list. in order; his guid, name, ip
+        /// </summary>
+        public Dictionary<Guid, (string, string)> OnlineList { get; set; }
     }
 }

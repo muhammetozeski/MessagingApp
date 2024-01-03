@@ -4,49 +4,148 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClientSpace"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <VisualBrush x:Key="backGround">
+            <VisualBrush.Visual>
+                <Grid>
+                    <!--
+                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Rectangle.Fill>
+                            <ImageBrush ImageSource="/Client;component/Resources/bg.jpg" TileMode="Tile" Viewport="0,0,0.1,0.1" ViewportUnits="RelativeToBoundingBox"/>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFD29FE8" Offset="0"/>
+                                <GradientStop Color="#FF8D4FBE" Offset="0.5"/>
+                                <GradientStop Color="#FF480095" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                    <Image Source="/Client;component/Resources/bg.jpg"  Stretch="None" 
+           HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    -->
+                </Grid>
+            </VisualBrush.Visual>
+        </VisualBrush>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
             <ColumnDefinition Width="3*" />
         </Grid.ColumnDefinitions>
 
-        <ListBox>
+        <ListBox Name="UsersListbox"  Background="#FFEDFFDE" MouseRightButtonUp="UsersListbox_MouseRightButtonUp" MouseLeftButtonUp="UsersListBox_MouseLeftButtonUp">
             <ListBox.Resources>
-                <Style TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="24"/>
-                    <!--<Setter Property="HorizontalTextAlignment" Value="Center"/>-->
-                </Style>
                 <Style TargetType="ListBoxItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                 </Style>
             </ListBox.Resources>
+            <Grid  x:Name="UserTemplate" Visibility="Collapsed" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="7*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="1*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <!--(0) name section:-->
+                        <TextBlock Text="Muhammet Ö." FontSize="24">
+                            <TextBlock.Tag>
+                                <sys:Int32>0</sys:Int32>
+                            </TextBlock.Tag>
+                        </TextBlock>
 
-            <TextBlock x:Name="UserTemplate" Text="user1"/>
+                        <!--(2) IsOnline section:-->
+                        <Ellipse HorizontalAlignment="Right" Width="20" Height="20" Fill="Green">
+                            <Ellipse.Tag>
+                                <sys:Int32>2</sys:Int32>
+                            </Ellipse.Tag>
+                        </Ellipse>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <!--(1) guid section:-->
+                        <TextBlock Text="9492e3e7-b044-4924-800b-801a90090b85" Foreground="#FF7B7B7B" FontSize="10">
+                            <TextBlock.Tag>
+                                <sys:Int32>1</sys:Int32>
+                            </TextBlock.Tag>
+                        </TextBlock>
+                    </Grid>
+                </Grid>
+                
+            </Grid>
 
         </ListBox>
 
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="50"/>
+                <RowDefinition Height="40"/>
             </Grid.RowDefinitions>
-            <!--Padding="10,10,10,10"-->
-            <Grid Grid.Row="0">
-                <TextBlock x:Name="ContentText" FontSize="24" Text="dsadsasda"/>
+            <Grid Grid.Row="0" Background="{StaticResource backGround}">
+                <!-- Background ImageBrush -->
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FFD29FE8" Offset="0"/>
+                            <GradientStop Color="#FF8D4FBE" Offset="0.5"/>
+                            <GradientStop Color="#FF480095" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <ImageBrush ImageSource="/Client;component/Resources/bg.jpg" TileMode="Tile" Viewport="0,0,0.4,1" ViewportUnits="RelativeToBoundingBox" Opacity="0.9"/>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Background="#FFE8FAD7" >
+                        <Border Padding="10,0,0,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Name="UserScreenName"  Text="" FontSize="25" Grid.Row="0"/>
+                                    <Ellipse Name="UserScreenIsOnlineEllipse" HorizontalAlignment="Right" Width="20" Height="20" Fill="Green" Margin="10,0,0,0" Visibility="Collapsed"/>
+                                </StackPanel>
+
+                                <TextBlock Name="UserScreenGuid"  Text="" FontSize="13" Grid.Row="0"/>
+
+                            </StackPanel>
+                        </Border>
+                        
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
+                        <ListBox Name="MessageContentListBox" MouseRightButtonUp="MessageContentListBox_MouseRightButtonUp" MouseLeftButtonUp="MessageContentListBox_MouseLeftButtonUp" Background="Transparent" HorizontalContentAlignment="Stretch">
+                            <Border Name="MessageContentContact" HorizontalAlignment="Left" MinWidth="150" Height="35" Background="#FF81FFFF" CornerRadius="15" Padding="15,0,15,0" Margin="0,0,0,10" Visibility="Collapsed" >
+                                <TextBlock Name="ContactMessageContentText" Text="Merhabaa" VerticalAlignment="Center" FontSize="20"/>
+                            </Border>
+                            <Border  Name="MessageContentUser"  HorizontalAlignment="Right" MinWidth="150" Height="35"  Background="#FF81FFA4" CornerRadius="15" Padding="15,0,15,0" Margin="0,0,0,10" Visibility="Collapsed" >
+                                <TextBlock Name="UserMessageContentText" Text="Naberr" VerticalAlignment="Center" FontSize="20"/>
+                            </Border>
+                        </ListBox>
+                    </Grid>
+                </Grid>
+                
+                
             </Grid>
-            <Grid Grid.Row="1" Background="Aqua">
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="130"/>
                 </Grid.ColumnDefinitions>
                 <Grid Grid.Column="0">
-                    <TextBox Text="dsadsadsa" FontSize="20" VerticalContentAlignment="Center" VerticalAlignment="Center" Uid="" BorderThickness="1,1,1,1"/>
+                    <TextBox Name="InputTextBox" KeyDown="Input_TextBox_KeyDown" Text="" FontSize="20" VerticalContentAlignment="Center" VerticalAlignment="Center" BorderThickness="0,0,0,0"/>
                 </Grid>
                 <Grid Grid.Column="1">
-                    <Button Content="Send" FontSize="30" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    <Button Name="SendButton" Click="OnSendButtonClicked" Content="Send" FontSize="25"/>
                 </Grid>
             </Grid>
         </Grid>
